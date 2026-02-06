@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Smart Classic Study Planner</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Merriweather:wght@300;400;700&display=swap" rel="stylesheet">
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        /* --- CSS VARIABLES & THEMING --- */
+        :root {
+            --bg-body: #fdfbf7; 
+            --bg-sidebar: #f4f1ea;
+            --bg-card: #ffffff;
+            --text-main: #2c3e50;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --primary: #334155; 
+            --primary-hover: #1e293b;
+            --accent: #b45309; 
+            --success: #059669;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            --radius: 8px;
+            --font-heading: 'Merriweather', serif;
+            --font-body: 'Lato', sans-serif;
+            --timer-ring: #334155;
+        }
+
+        [data-theme="dark"] {
+            --bg-body: #0f172a;
+            --bg-sidebar: #1e293b;
+            --bg-card: #1e293b;
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --primary: #cbd5e1;
+            --primary-hover: #ffffff;
+            --accent: #f59e0b;
+            --success: #34d399;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            --timer-ring: #475569;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: var(--font-body);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- AUTH SCREEN --- */
+        #auth-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: var(--bg-body);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .auth-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            width: 100%;
+            max-width: 400px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .auth-header {
+            background: var(--primary);
+            color: var(--bg-body);
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .auth-header h1 { font-family: var(--font-heading); font-size: 1.5rem; margin-bottom: 0.5rem; }
+
+        .auth-tabs { display: flex; border-bottom: 1px solid var(--border); }
+        .auth-tab {
+            flex: 1;
+            padding: 1rem;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-weight: 700;
+            color: var(--text-muted);
+            border-bottom: 2px solid transparent;
+            font-size: 0.9rem;
+        }
+        .auth-tab.active { color: var(--accent); border-bottom-color: var(--accent); background: rgba(0,0,0,0.02); }
+
+        .auth-body { padding: 2rem; }
+        .auth-form { display: none; }
+        .auth-form.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            width: 280px;
+            background-color: var(--bg-sidebar);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 2rem 1.5rem;
+            position: relative;
+            z-index: 10;
+        }
+
+        .logo-area { margin-bottom: 3rem; font-family: var(--font-heading); }
+        .logo-area h1 { font-size: 1.5rem; color: var(--text-main); letter-spacing: -0.5px; }
+        .logo-area span { font-size: 0.85rem; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+
+        .nav-links { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; flex: 1; }
+
+        .nav-btn {
+            display: flex; align-items: center; gap: 1rem;
+            padding: 1rem; border: none; background: transparent;
+            color: var(--text-muted); font-family: var(--font-body);
+            font-weight: 600; cursor: pointer; border-radius: var(--radius);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); font-size: 0.95rem;
+        }
+        .nav-btn:hover { background-color: rgba(0,0,0,0.05); color: var(--text-main); transform: translateX(4px); }
+        .nav-btn.active { background-color: var(--text-main); color: var(--bg-body); box-shadow: var(--shadow); }
+        .nav-btn.active i { color: var(--accent); }
+
+        /* User Profile */
+        .user-profile {
+            margin-top: auto; padding-top: 1.5rem;
+            border-top: 1px solid var(--border);
+            display: flex; align-items: center; gap: 0.8rem;
+        }
+        .avatar {
+            width: 40px; height: 40px; border-radius: 50%;
+            background-color: var(--accent); color: white;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-family: var(--font-heading);
+        }
+        .user-info { flex: 1; overflow: hidden; }
+        .user-name { font-weight: 700; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .logout-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 0.5rem; }
+        .logout-btn:hover { color: #ef4444; }
+
+        /* --- MAIN CONTENT --- */
+        .main-content { flex: 1; overflow-y: auto; padding: 3rem; position: relative; scroll-behavior: smooth; }
+
+        header {
+            margin-bottom: 2rem; display: flex;
+            justify-content: space-between; align-items: flex-end;
+            border-bottom: 1px solid var(--border); padding-bottom: 1rem;
+        }
+        header h2 { font-family: var(--font-heading); font-size: 2rem; color: var(--text-main); }
+        .date-display { font-family: var(--font-heading); font-style: italic; color: var(--text-muted); font-size: 1rem; text-align: right; }
+
+        /* --- SECTIONS --- */
+        .section { display: none; animation: slideUp 0.4s ease-out; padding-bottom: 2rem;}
+        .section.active { display: block; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- DASHBOARD --- */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; }
+        .stat-card {
+            background: var(--bg-card); padding: 1.5rem;
+            border: 1px solid var(--border); border-radius: var(--radius);
+            box-shadow: var(--shadow); text-align: center;
+        }
+        .stat-value { font-family: var(--font-heading); font-size: 2.5rem; color: var(--primary); margin: 0.5rem 0; font-weight: 700; }
+        .stat-label { color: var(--text-muted); text-transform: uppercase; font-size: 0.7rem; letter-spacing: 1px; font-weight: 700; }
+
+        /* --- PLANNER --- */
+        .planner-container { display: grid; grid-template-columns: 350px 1fr; gap: 2rem; }
+        .input-panel {
+            background: var(--bg-card); padding: 1.5rem; border: 1px solid var(--border);
+            border-radius: var(--radius); box-shadow: var(--shadow); height: fit-content;
+        }
+        .input-panel h3 { font-family: var(--font-heading); margin-bottom: 1rem; color: var(--text-main); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; display: inline-block; font-size: 1.2rem;}
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.85rem; color: var(--text-main); }
+        input, select {
+            width: 100%; padding: 0.8rem 1rem; background: var(--bg-body);
+            border: 1px solid var(--border); border-radius: var(--radius);
+            font-family: var(--font-body); color: var(--text-main); font-size: 16px;
+            outline: none;
+        }
+        input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0,0,0,0.05); }
+        
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            gap: 0.5rem; padding: 0.8rem 1.5rem; border-radius: var(--radius);
+            font-weight: 600; cursor: pointer; border: none; font-family: var(--font-body);
+            transition: transform 0.1s, box-shadow 0.2s;
+        }
+        .btn:active { transform: scale(0.98); }
+        .btn-primary { background: var(--primary); color: var(--bg-body); width: 100%; }
+        .btn-primary:hover { background: var(--primary-hover); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+
+        /* --- TASK LIST --- */
+        .task-list { list-style: none; }
+        .task-item {
+            background: var(--bg-card); padding: 1rem; margin-bottom: 1rem;
+            border-radius: var(--radius); border: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+            transition: all 0.2s ease; position: relative; overflow: hidden;
+        }
+        .task-left { display: flex; align-items: center; gap: 1rem; flex: 1; }
+        .custom-checkbox {
+            appearance: none; width: 24px; height: 24px; border: 2px solid var(--text-muted);
+            border-radius: 4px; cursor: pointer; position: relative; flex-shrink: 0;
+        }
+        .custom-checkbox:checked { background-color: var(--primary); border-color: var(--primary); }
+        .custom-checkbox:checked::after {
+            content: '✔'; color: var(--bg-body); position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.8rem;
+        }
+        .task-info h4 { font-family: var(--font-heading); font-size: 1rem; margin-bottom: 0.2rem; line-height: 1.3; }
+        .task-badge { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .badge-study { background: #e0f2fe; color: #0284c7; }
+        .badge-reading { background: #fce7f3; color: #db2777; }
+        .badge-relax { background: #dcfce7; color: #16a34a; }
+        [data-theme="dark"] .badge-study { background: #0c4a6e; color: #7dd3fc; }
+        [data-theme="dark"] .badge-reading { background: #831843; color: #f472b6; }
+        [data-theme="dark"] .badge-relax { background: #14532d; color: #4ade80; }
+        
+        .task-item.completed h4 { text-decoration: line-through; color: var(--text-muted); }
+        .task-link { font-size: 0.75rem; color: var(--primary); text-decoration: none; margin-left: 0.5rem; display: inline-flex; align-items: center; }
+        .btn-delete { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 0.5rem; border-radius: 4px; margin-left: 0.5rem;}
+        .btn-delete:hover { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+
+        /* --- RESOURCES --- */
+        .resource-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1.5rem; }
+        .resource-card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); text-decoration: none; color: var(--text-main);
+            transition: transform 0.2s, box-shadow 0.2s; display: block; overflow: hidden;
+        }
+        .resource-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); border-color: var(--accent); }
+        .res-header { background: var(--primary); color: var(--bg-body); padding: 1.5rem; position: relative; }
+        .res-header.reading { background: var(--text-main); }
+        .res-header.novel { background: var(--accent); }
+        .res-body { padding: 1.5rem; }
+        .res-title { font-family: var(--font-heading); font-size: 1.2rem; margin-bottom: 0.5rem; color: var(--text-main); }
+        .res-desc { color: var(--text-muted); font-size: 0.9rem; line-height: 1.5; }
+
+        /* --- TIMER --- */
+        .timer-wrapper {
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; padding: 3rem 1.5rem; background: var(--bg-card);
+            border-radius: 12px; box-shadow: var(--shadow); max-width: 500px;
+            margin: 0 auto; border: 1px solid var(--border);
+        }
+        .timer-circle { position: relative; width: 250px; height: 250px; }
+        .timer-circle svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+        .timer-circle circle { fill: none; stroke-width: 8; stroke-linecap: round; }
+        .circle-bg { stroke: var(--bg-body); }
+        .circle-progress { stroke: var(--accent); stroke-dasharray: 753; stroke-dashoffset: 0; transition: stroke-dashoffset 1s linear; }
+        .timer-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
+        .time-display { font-size: 3.5rem; font-family: var(--font-heading); font-weight: 700; color: var(--text-main); }
+        .timer-label { font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+        .timer-controls { margin-top: 2rem; display: flex; gap: 1rem; width: 100%; justify-content: center; }
+        .timer-modes { display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; justify-content: center; }
+        .mode-btn { background: transparent; border: 1px solid var(--border); padding: 0.5rem 1rem; border-radius: 20px; cursor: pointer; color: var(--text-muted); font-size: 0.85rem; }
+        .mode-btn.active { background: var(--text-main); color: var(--bg-body); border-color: var(--text-main); }
+
+        /* --- SETTINGS & ABOUT --- */
+        .settings-card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 1.5rem; max-width: 600px; box-shadow: var(--shadow);
+        }
+        .about-layout { display: grid; grid-template-columns: 1fr 300px; gap: 3rem; align-items: start; }
+        .about-text p { margin-bottom: 1.5rem; line-height: 1.6; color: var(--text-muted); }
+        .profile-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; text-align: center; box-shadow: var(--shadow); }
+        .profile-img { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; margin-bottom: 1rem; border: 4px solid var(--bg-body); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+
+        /* --- TOAST --- */
+        .toast {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px);
+            background: var(--text-main); color: var(--bg-body);
+            padding: 1rem 2rem; border-radius: 50px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            opacity: 0; transition: all 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            z-index: 2000; font-family: var(--font-heading); width: max-content;
+            max-width: 90%; text-align: center; font-size: 0.9rem;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+        /* --- RESPONSIVE --- */
+        @media (max-width: 900px) {
+            .planner-container { grid-template-columns: 1fr; }
+            .about-layout { grid-template-columns: 1fr; text-align: center; }
+        }
+
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            .sidebar {
+                width: 100%; height: 65px; flex-direction: row; align-items: center;
+                justify-content: space-between; padding: 0 1rem; position: fixed;
+                bottom: 0; top: auto; left: 0; border-right: none; border-top: 1px solid var(--border);
+                z-index: 1000; background: var(--bg-sidebar); box-shadow: 0 -4px 10px rgba(0,0,0,0.05);
+            }
+            .logo-area, .user-profile { display: none; }
+            .nav-links { flex-direction: row; width: 100%; justify-content: space-between; gap: 0; }
+            .nav-btn { flex-direction: column; gap: 2px; padding: 0.5rem; border-radius: 0; background: transparent !important; color: var(--text-muted); font-size: 0.7rem; min-width: 50px; }
+            .nav-btn i { font-size: 1.5rem; margin-bottom: 2px; }
+            .nav-btn span { display: block; font-weight: 400; font-size: 0.65rem; letter-spacing: 0.5px; }
+            .nav-btn.active { color: var(--accent); transform: none; }
+            .nav-btn.active i { color: var(--accent); }
+            
+            .main-content { padding: 1rem; padding-bottom: 80px; width: 100%; }
+            header { flex-direction: column; align-items: flex-start; margin-bottom: 1.5rem; gap: 0.5rem; }
+            header h2 { font-size: 1.6rem; }
+            .date-display { font-size: 0.9rem; text-align: left; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            .stat-value { font-size: 2rem; }
+            .input-panel { width: 100%; border: none; padding: 0; margin-bottom: 2rem; box-shadow: none; background: transparent;}
+            .input-panel h3 { display: none; }
+            .form-group { margin-bottom: 0.8rem; }
+            .btn-primary { padding: 1rem; font-size: 1rem; }
+            .timer-circle { width: 220px; height: 220px; }
+            .time-display { font-size: 2.8rem; }
+            .timer-wrapper { padding: 2rem 1rem; border-radius: var(--radius); border: none; box-shadow: none; background: transparent; }
+            .toast { bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px); }
+        }
+        @media (max-width: 480px) { .stats-grid { grid-template-columns: 1fr; } header h2 { font-size: 1.4rem; } }
+    </style>
+</head>
+<body>
+
+    <!-- AUTH SCREEN -->
+    <div id="auth-screen">
+        <div class="auth-container">
+            <div class="auth-header">
+                <span style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; display: block; margin-bottom: 5px;" data-i18n="welcomeTo">Welcome to</span>
+                <h1 data-i18n="appTitleAuth">Adjira's Planner</h1>
+            </div>
+            <div class="auth-tabs">
+                <button class="auth-tab active" onclick="switchAuthTab('login')" data-i18n="login">Login</button>
+                <button class="auth-tab" onclick="switchAuthTab('signup')" data-i18n="signup">Sign Up</button>
+            </div>
+            <div class="auth-body">
+                <!-- Login Form -->
+                <form id="form-login" class="auth-form active" onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label data-i18n="username">Username</label>
+                        <input type="text" id="login-user" required autocomplete="username" data-i18n-ph="phEnterUser">
+                    </div>
+                    <div class="form-group">
+                        <label data-i18n="password">Password</label>
+                        <input type="password" id="login-pass" required autocomplete="current-password" data-i18n-ph="phEnterPass">
+                    </div>
+                    <button type="submit" class="btn btn-primary" data-i18n="enterBtn">Enter Study Space</button>
+                </form>
+                <!-- Signup Form -->
+                <form id="form-signup" class="auth-form" onsubmit="handleSignup(event)">
+                    <div class="form-group">
+                        <label data-i18n="chooseName">Choose a Username</label>
+                        <input type="text" id="signup-user" required autocomplete="username" data-i18n-ph="phEnterUser">
+                    </div>
+                    <div class="form-group">
+                        <label data-i18n="createPass">Create Password</label>
+                        <input type="password" id="signup-pass" required autocomplete="new-password" data-i18n-ph="phEnterPass">
+                    </div>
+                    <button type="submit" class="btn btn-primary" data-i18n="createAccount">Create Account</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP SCREEN -->
+    <div id="app-screen" style="display: none; width: 100%; height: 100%; display: flex;">
+        <nav class="sidebar">
+            <div class="logo-area">
+                <span data-i18n="adjiras">Adjira's</span>
+                <h1 data-i18n="appTitle">Study Planner</h1>
+            </div>
+            
+            <ul class="nav-links">
+                <li><button class="nav-btn active" onclick="switchTab('dashboard', this)"><i class="ph ph-charts-horizontal"></i><span data-i18n="overview">Overview</span></button></li>
+                <li><button class="nav-btn" onclick="switchTab('planner', this)"><i class="ph ph-notebook"></i><span data-i18n="planDay">Plan</span></button></li>
+                <li><button class="nav-btn" onclick="switchTab('resources', this)"><i class="ph ph-books"></i><span data-i18n="library">Library</span></button></li>
+                <li><button class="nav-btn" onclick="switchTab('focus', this)"><i class="ph ph-timer"></i><span data-i18n="focus">Focus</span></button></li>
+                <li><button class="nav-btn" onclick="switchTab('settings', this)"><i class="ph ph-gear"></i><span data-i18n="settings">Settings</span></button></li>
+                <li><button class="nav-btn" onclick="switchTab('about', this)"><i class="ph ph-info"></i><span data-i18n="about">About</span></button></li>
+            </ul>
+
+            <div class="user-profile">
+                <div class="avatar" id="user-avatar-initials">A</div>
+                <div class="user-info">
+                    <div class="user-name" id="display-username">User</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);" data-i18n="student">Student</div>
+                </div>
+                <button class="logout-btn" onclick="handleLogout()" title="Logout"><i class="ph ph-sign-out"></i></button>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <header>
+                <h2 id="page-title" data-i18n="dashboard">Dashboard</h2>
+                <div class="date-display" id="current-date">...</div>
+            </header>
+
+            <section id="dashboard" class="section active">
+                <div class="stats-grid">
+                    <div class="stat-card"><div class="stat-label" data-i18n="tasksCompleted">Tasks Completed</div><div class="stat-value" id="stat-completed">0</div></div>
+                    <div class="stat-card"><div class="stat-label" data-i18n="pending">Pending</div><div class="stat-value" id="stat-pending">0</div></div>
+                    <div class="stat-card"><div class="stat-label" data-i18n="productivity">Productivity</div><div class="stat-value" id="stat-productivity">0%</div></div>
+                </div>
+                <div style="margin-top: 3rem; text-align: center; opacity: 0.7;">
+                    <i class="ph ph-pencil-simple-slash" style="font-size: 3rem; color: var(--text-muted);"></i>
+                    <p style="margin-top: 1rem; font-family: var(--font-heading);" data-i18n="quote">"A goal without a plan is just a wish."</p>
+                </div>
+            </section>
+
+            <section id="planner" class="section">
+                <div class="planner-container">
+                    <div class="input-panel">
+                        <h3 data-i18n="newTask">New Task</h3>
+                        <div class="form-group"><input type="text" id="task-title" data-i18n-ph="placeholderTask" autocomplete="off"></div>
+                        <div class="form-group">
+                            <select id="task-category">
+                                <option value="study" data-i18n="catStudy">Study / Course</option>
+                                <option value="reading" data-i18n="catReading">Book / Novel</option>
+                                <option value="relax" data-i18n="catRelax">Break / Relax</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><input type="text" id="task-link" data-i18n-ph="placeholderLink" autocomplete="off"></div>
+                        <button class="btn btn-primary" onclick="addTask()"><i class="ph ph-plus"></i> <span data-i18n="addTaskBtn">Add to Schedule</span></button>
+                    </div>
+                    <div>
+                        <h3 style="font-family: var(--font-heading); margin-bottom: 1rem;" data-i18n="todayAgenda">Today's Agenda</h3>
+                        <ul class="task-list" id="task-list-container"></ul>
+                    </div>
+                </div>
+            </section>
+
+            <section id="resources" class="section">
+                <div class="timer-modes">
+                    <button class="mode-btn active" onclick="filterRes('all', this)" data-i18n="all">All</button>
+                    <button class="mode-btn" onclick="filterRes('courses', this)" data-i18n="courses">Courses</button>
+                    <button class="mode-btn" onclick="filterRes('reading', this)" data-i18n="reading">Reading</button>
+                </div>
+                <div class="resource-grid" id="resource-grid"></div>
+            </section>
+
+            <section id="focus" class="section">
+                <div class="timer-wrapper">
+                    <div class="timer-modes">
+                        <button class="mode-btn active" onclick="setTimerMode(25, this)" data-i18n="focusMode">Focus</button>
+                        <button class="mode-btn" onclick="setTimerMode(5, this)" data-i18n="shortBreak">Short Break</button>
+                        <button class="mode-btn" onclick="setTimerMode(15, this)" data-i18n="longBreak">Long Break</button>
+                    </div>
+                    <div class="timer-circle">
+                        <svg><circle class="circle-bg" cx="125" cy="125" r="120"></circle><circle class="circle-progress" id="progress-ring" cx="125" cy="125" r="120"></circle></svg>
+                        <div class="timer-text">
+                            <div class="time-display" id="timer-display">25:00</div>
+                            <div class="timer-label" data-i18n="focusTime">Focus Time</div>
+                        </div>
+                    </div>
+                    <div class="timer-controls">
+                        <button class="btn btn-primary" style="width: auto; padding: 0.8rem 2rem;" onclick="toggleTimer()"><span id="timer-btn-text" data-i18n="startSession">Start Session</span></button>
+                        <button class="btn" style="background: transparent; border: 1px solid var(--border);" onclick="resetTimer()"><span data-i18n="reset">Reset</span></button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="settings" class="section">
+                <div class="settings-card">
+                    <h3 style="font-family: var(--font-heading); margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem;" data-i18n="appSettings">App Settings</h3>
+                    <div class="form-group">
+                        <label data-i18n="language">Language</label>
+                        <select id="lang-select" onchange="changeLanguage(this.value)">
+                            <option value="en">English</option>
+                            <option value="es">Español (Spanish)</option>
+                            <option value="fr">Français (French)</option>
+                            <option value="zh">中文 (Chinese)</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-top: 2rem; display: flex; align-items: center; justify-content: space-between;">
+                        <div><div style="font-weight: 700;" data-i18n="darkMode">Dark Mode</div><div style="font-size: 0.85rem; color: var(--text-muted);" data-i18n="darkModeDesc">Easier on the eyes at night</div></div>
+                        <button class="btn" style="background: var(--primary); color: var(--bg-body);" onclick="toggleTheme()"><span data-i18n="toggle">Toggle Theme</span></button>
+                    </div>
+                    <div class="form-group" style="margin-top: 2rem; display: none;" id="mobile-logout-container">
+                         <button class="btn" style="background: #ef4444; color: white; width: 100%;" onclick="handleLogout()"><span data-i18n="logout">Logout</span></button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="about" class="section">
+                <div class="about-layout">
+                    <div class="about-text">
+                        <h2 style="font-family: var(--font-heading); margin-bottom: 1rem;" data-i18n="aboutAdjira">About Adjira</h2>
+                        <p data-i18n="aboutP1">Classic Study Planner was designed to bridge the gap between modern productivity tools and the timeless elegance of traditional pen-and-paper planning.</p>
+                        <h3 style="font-family: var(--font-heading); color: var(--primary); margin: 1.5rem 0 0.5rem 0;" data-i18n="philosophy">Philosophy</h3>
+                        <p data-i18n="aboutP2">We focus on distraction-free interfaces. No ads, no notifications, just you and your goals.</p>
+                    </div>
+                    <div class="profile-card">
+                        <!-- Using a seed for consistent placeholder -->
+                        <img src="image2.jpg" alt="Adjira" class="profile-img">
+                        <h3 style="font-family: var(--font-heading); color: var(--primary);">Adjira</h3>
+                        <p style="color: var(--accent); font-size: 0.9rem; font-weight: 700; margin-bottom: 1rem;" data-i18n="role">Founder & Designer</p>
+                        <div style="display: flex; justify-content: center; gap: 1.5rem; font-size: 1.5rem; color: var(--text-muted);">
+                            <i class="ph ph-twitter-logo"></i><i class="ph ph-instagram-logo"></i><i class="ph ph-envelope"></i>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="toast" class="toast">Message</div>
+
+    <script>
+        // --- CONSTANTS ---
+        const DB_USERS_KEY = 'adjira_users_v1'; 
+        
+        // --- COMPREHENSIVE TRANSLATIONS ---
+        const translations = {
+            en: { 
+                login: "Login", signup: "Sign Up", username: "Username", password: "Password", 
+                enterBtn: "Enter Study Space", chooseName: "Choose a Username", createPass: "Create Password", 
+                createAccount: "Create Account", welcomeTo: "Welcome to", appTitleAuth: "Adjira's Planner",
+                phEnterUser: "Enter username", phEnterPass: "Enter password",
+                dashboard: "Dashboard", overview: "Overview", tasksCompleted: "Tasks Completed", 
+                pending: "Pending", productivity: "Productivity", quote: "\"A goal without a plan is just a wish.\"", 
+                newTask: "New Task", placeholderTask: "What needs to be done?", placeholderLink: "Link (Optional)", 
+                catStudy: "Study / Course", catReading: "Book / Novel", catRelax: "Break / Relax", 
+                addTaskBtn: "Add to Schedule", todayAgenda: "Today's Agenda", noTasks: "No tasks today. Enjoy your day!",
+                badgeStudy: "Study", badgeReading: "Reading", badgeRelax: "Relax", confirmDelete: "Delete this task?",
+                all: "All", courses: "Courses", reading: "Reading", focus: "Focus", focusMode: "Focus Mode", 
+                shortBreak: "Short Break", longBreak: "Long Break", focusTime: "Focus Time", 
+                startSession: "Start Session", pause: "Pause", reset: "Reset", 
+                settings: "Settings", appSettings: "App Settings", language: "Language", 
+                darkMode: "Dark Mode", darkModeDesc: "Easier on the eyes at night", toggle: "Toggle Theme", logout: "Logout",
+                about: "About", aboutAdjira: "About Adjira", aboutP1: "Classic Study Planner was designed to bridge the gap between modern productivity tools and the timeless elegance of traditional pen-and-paper planning.", 
+                philosophy: "Philosophy", aboutP2: "We focus on distraction-free interfaces. No ads, no notifications, just you and your goals.", role: "Founder & Designer",
+                welcomeBack: "Welcome back", sessionComplete: "Session Complete!", taskAdded: "Task added", taskRemoved: "Task removed", 
+                fillFields: "Please fill in all fields", userExists: "Username already taken", invalidCreds: "Invalid credentials",
+                adjiras: "Adjira's", appTitle: "Study Planner", planDay: "Plan Day", library: "Library", student: "Student"
+            },
+            es: { 
+                login: "Ingresar", signup: "Registro", username: "Usuario", password: "Contraseña", 
+                enterBtn: "Entrar al Espacio", chooseName: "Elegir Usuario", createPass: "Crear Contraseña", 
+                createAccount: "Crear Cuenta", welcomeTo: "Bienvenido a", appTitleAuth: "Planificador de Adjira",
+                phEnterUser: "Ingresa usuario", phEnterPass: "Ingresa contraseña",
+                dashboard: "Tablero", overview: "Resumen", tasksCompleted: "Tareas Completadas", 
+                pending: "Pendiente", productivity: "Productividad", quote: "\"Un objetivo sin un plan es solo un deseo.\"", 
+                newTask: "Nueva Tarea", placeholderTask: "¿Qué se necesita hacer?", placeholderLink: "Enlace (Opcional)", 
+                catStudy: "Estudio / Curso", catReading: "Libro / Novela", catRelax: "Descanso / Relax", 
+                addTaskBtn: "Añadir al Horario", todayAgenda: "Agenda de Hoy", noTasks: "No hay tareas hoy. ¡Disfruta tu día!",
+                badgeStudy: "Estudio", badgeReading: "Lectura", badgeRelax: "Relax", confirmDelete: "¿Eliminar esta tarea?",
+                all: "Todo", courses: "Cursos", reading: "Lectura", focus: "Enfoque", focusMode: "Modo Enfoque", 
+                shortBreak: "Descanso Corto", longBreak: "Descanso Largo", focusTime: "Tiempo de Enfoque", 
+                startSession: "Iniciar Sesión", pause: "Pausar", reset: "Reiniciar", 
+                settings: "Ajustes", appSettings: "Ajustes de la App", language: "Idioma", 
+                darkMode: "Modo Oscuro", darkModeDesc: "Más fácil para la vista en la noche", toggle: "Cambiar Tema", logout: "Cerrar Sesión",
+                about: "Acerca de", aboutAdjira: "Acerca de Adjira", aboutP1: "El Planificador de Estudio Clásico fue diseñado para cerrar la brecha entre las herramientas de productividad modernas y la elegancia atemporal de la planificación tradicional con lápiz y papel.", 
+                philosophy: "Filosofía", aboutP2: "Nos enfocamos en interfaces sin distracciones. Sin anuncios, sin notificaciones, solo tú y tus metas.", role: "Fundadora y Diseñadora",
+                welcomeBack: "Hola de nuevo", sessionComplete: "¡Sesión Completada!", taskAdded: "Tarea añadida", taskRemoved: "Tarea eliminada", 
+                fillFields: "Por favor completa todos los campos", userExists: "El usuario ya existe", invalidCreds: "Credenciales inválidas",
+                adjiras: "De Adjira", appTitle: "Planificador de Estudio", planDay: "Planificar Día", library: "Biblioteca", student: "Estudiante"
+            },
+            fr: { 
+                login: "Connexion", signup: "S'inscrire", username: "Utilisateur", password: "Mot de passe", 
+                enterBtn: "Entrer", chooseName: "Choisir un nom", createPass: "Créer un MDP", 
+                createAccount: "Créer un compte", welcomeTo: "Bienvenue sur", appTitleAuth: "Planificateur d'Adjira",
+                phEnterUser: "Entrez l'utilisateur", phEnterPass: "Entrez le MDP",
+                dashboard: "Tableau de bord", overview: "Vue d'ensemble", tasksCompleted: "Tâches terminées", 
+                pending: "En attente", productivity: "Productivité", quote: "\"Un objectif sans plan n'est qu'un souhait.\"", 
+                newTask: "Nouvelle Tâche", placeholderTask: "Que faut-il faire ?", placeholderLink: "Lien (Optionnel)", 
+                catStudy: "Étude / Cours", catReading: "Livre / Roman", catRelax: "Pause / Détente", 
+                addTaskBtn: "Ajouter au programme", todayAgenda: "Agenda du jour", noTasks: "Aucune tâche aujourd'hui. Profitez de votre journée.",
+                badgeStudy: "Étude", badgeReading: "Lecture", badgeRelax: "Détente", confirmDelete: "Supprimer cette tâche ?",
+                all: "Tout", courses: "Cours", reading: "Lecture", focus: "Concentration", focusMode: "Mode Concentration", 
+                shortBreak: "Pause courte", longBreak: "Pause longue", focusTime: "Temps de concentration", 
+                startSession: "Démarrer", pause: "Pause", reset: "Réinitialiser", 
+                settings: "Paramètres", appSettings: "Paramètres de l'App", language: "Langue", 
+                darkMode: "Mode Sombre", darkModeDesc: "Plus reposant pour les yeux la nuit", toggle: "Changer le thème", logout: "Déconnexion",
+                about: "À propos", aboutAdjira: "À propos d'Adjira", aboutP1: "Le Planificateur d'Étude Classique a été conçu pour combler le fossé entre les outils de productivité modernes et l'élégance intemporelle de la planification papier.", 
+                philosophy: "Philosophie", aboutP2: "Nous nous concentrons sur des interfaces sans distraction. Pas de pub, pas de notif, juste vous et vos objectifs.", role: "Fondatrice & Designer",
+                welcomeBack: "Bon retour", sessionComplete: "Session terminée !", taskAdded: "Tâche ajoutée", taskRemoved: "Tâche supprimée", 
+                fillFields: "Veuillez remplir tous les champs", userExists: "Utilisateur déjà pris", invalidCreds: "Identifiants invalides",
+                adjiras: "D'Adjira", appTitle: "Planificateur d'Étude", planDay: "Planifier", library: "Bibliothèque", student: "Étudiant"
+            },
+            zh: { 
+                login: "登录", signup: "注册", username: "用户名", password: "密码", 
+                enterBtn: "进入学习空间", chooseName: "选择用户名", createPass: "创建密码", 
+                createAccount: "创建账户", welcomeTo: "欢迎来到", appTitleAuth: "Adjira的规划器",
+                phEnterUser: "输入用户名", phEnterPass: "输入密码",
+                dashboard: "仪表盘", overview: "概览", tasksCompleted: "已完成任务", 
+                pending: "待办", productivity: "生产力", quote: "“没有计划的目标只是愿望。”", 
+                newTask: "新任务", placeholderTask: "需要做什么？", placeholderLink: "链接（可选）", 
+                catStudy: "学习 / 课程", catReading: "书籍 / 小说", catRelax: "休息 / 放松", 
+                addTaskBtn: "添加到日程", todayAgenda: "今日日程", noTasks: "今天没有任务。享受你的一天！",
+                badgeStudy: "学习", badgeReading: "阅读", badgeRelax: "放松", confirmDelete: "删除此任务？",
+                all: "全部", courses: "课程", reading: "阅读", focus: "专注", focusMode: "专注模式", 
+                shortBreak: "短休息", longBreak: "长休息", focusTime: "专注时间", 
+                startSession: "开始会话", pause: "暂停", reset: "重置", 
+                settings: "设置", appSettings: "应用设置", language: "语言", 
+                darkMode: "深色模式", darkModeDesc: "夜间保护眼睛", toggle: "切换主题", logout: "退出登录",
+                about: "关于", aboutAdjira: "关于 Adjira", aboutP1: "经典学习规划器旨在弥合现代生产力工具与传统纸笔规划的永恒优雅之间的差距。", 
+                philosophy: "理念", aboutP2: "我们专注于无干扰的界面。没有广告，没有通知，只有你和你的目标。", role: "创始人兼设计师",
+                welcomeBack: "欢迎回来", sessionComplete: "会话完成！", taskAdded: "任务已添加", taskRemoved: "任务已删除", 
+                fillFields: "请填写所有字段", userExists: "用户名已被占用", invalidCreds: "凭据无效",
+                adjiras: "Adjira的", appTitle: "学习规划器", planDay: "规划", library: "图书馆", student: "学生"
+            }
+        };
+
+        const defaultResources = [
+            { title: "Khan Academy", type: "courses", desc: "Free courses.", url: "https://www.khanacademy.org" },
+            { title: "Coursera", type: "courses", desc: "University certificates.", url: "https://www.coursera.org" },
+            { title: "W3Schools", type: "courses", desc: "Learn to code.", url: "https://www.w3schools.com" },
+            { title: "Project Gutenberg", type: "reading", desc: "Free eBooks.", url: "https://www.gutenberg.org" },
+            { title: "Goodreads", type: "reading", desc: "Track books.", url: "https://www.goodreads.com" }
+        ];
+
+        // --- STATE ---
+        let data = {
+            tasks: [],
+            resources: defaultResources,
+            theme: 'light',
+            lang: 'en',
+            currentUser: null
+        };
+
+        // --- AUTH & DATA LOGIC ---
+
+        function loadUserData(username) {
+            const key = `adjira_data_${username}`;
+            const saved = localStorage.getItem(key);
+            
+            data.tasks = [];
+            data.theme = 'light';
+            data.lang = 'en';
+            data.currentUser = { username: username };
+
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    Object.assign(data, parsed);
+                    data.currentUser = { username: username };
+                } catch (e) { console.error("Data load error", e); }
+            }
+            
+            applyTheme();
+            updateDate();
+            updateStats();
+            renderTasks();
+            renderResources('all');
+            applyLanguage(data.lang);
+        }
+
+        function saveData() {
+            if (!data.currentUser || !data.currentUser.username) return;
+            const key = `adjira_data_${data.currentUser.username}`;
+            localStorage.setItem(key, JSON.stringify(data));
+            updateStats();
+        }
+
+        function handleSignup(e) {
+            e.preventDefault();
+            const user = document.getElementById('signup-user').value.trim();
+            const pass = document.getElementById('signup-pass').value.trim();
+            const t = translations[data.lang];
+
+            if (!user || !pass) { showToast(t.fillFields); return; }
+            const db = JSON.parse(localStorage.getItem(DB_USERS_KEY) || '{}');
+            if (db[user]) { showToast(t.userExists); return; }
+
+            db[user] = pass;
+            localStorage.setItem(DB_USERS_KEY, JSON.stringify(db));
+            const newData = { tasks: [], resources: defaultResources, theme: 'light', lang: 'en' };
+            localStorage.setItem(`adjira_data_${user}`, JSON.stringify(newData));
+
+            showToast(t.createAccount + "!");
+            document.getElementById('signup-user').value = '';
+            document.getElementById('signup-pass').value = '';
+            loadUserData(user);
+            showApp();
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const user = document.getElementById('login-user').value.trim();
+            const pass = document.getElementById('login-pass').value.trim();
+            const t = translations[data.lang];
+
+            if (!user || !pass) { showToast(t.fillFields); return; }
+            const db = JSON.parse(localStorage.getItem(DB_USERS_KEY) || '{}');
+
+            if (!db[user]) { showToast(t.userExists + ". " + t.signup); return; }
+            if (db[user] !== pass) { showToast(t.invalidCreds); return; }
+
+            document.getElementById('login-user').value = '';
+            document.getElementById('login-pass').value = '';
+            loadUserData(user);
+            showApp();
+        }
+
+        function handleLogout() {
+            data.currentUser = null;
+            document.getElementById('app-screen').style.display = 'none';
+            document.getElementById('auth-screen').style.display = 'flex';
+        }
+
+        function init() {
+            if (window.innerWidth <= 768) document.getElementById('mobile-logout-container').style.display = 'block';
+            document.getElementById('auth-screen').style.display = 'flex';
+            document.getElementById('app-screen').style.display = 'none';
+            data.tasks = []; data.theme = 'light'; data.lang = 'en'; data.currentUser = null;
+        }
+
+        function showApp() {
+            document.getElementById('auth-screen').style.display = 'none';
+            document.getElementById('app-screen').style.display = 'flex';
+            const name = data.currentUser.username;
+            document.getElementById('display-username').innerText = name;
+            document.getElementById('user-avatar-initials').innerText = name.charAt(0).toUpperCase();
+            showToast(`${translations[data.lang].welcomeBack}, ${name}!`);
+        }
+
+        function switchAuthTab(tab) {
+            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+            if (tab === 'login') {
+                document.querySelector('.auth-tab:nth-child(1)').classList.add('active');
+                document.getElementById('form-login').classList.add('active');
+            } else {
+                document.querySelector('.auth-tab:nth-child(2)').classList.add('active');
+                document.getElementById('form-signup').classList.add('active');
+            }
+        }
+
+        function changeLanguage(lang) {
+            data.lang = lang;
+            applyLanguage(lang);
+            saveData();
+        }
+
+        function applyLanguage(lang) {
+            const t = translations[lang];
+            document.getElementById('lang-select').value = lang;
+            
+            // Update Text Content
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (t[key]) el.innerText = t[key];
+            });
+
+            // Update Placeholders
+            document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+                const key = el.getAttribute('data-i18n-ph');
+                if (t[key]) el.placeholder = t[key];
+            });
+
+            // Re-render components that generate dynamic text
+            renderTasks(); 
+            renderResources(document.querySelector('#resources .mode-btn.active').onclick.toString().match(/'([^']+)'/)[1]);
+            updateDate();
+        }
+
+        function toggleTheme() {
+            data.theme = data.theme === 'light' ? 'dark' : 'light';
+            applyTheme();
+            saveData();
+        }
+
+        function applyTheme() {
+            document.documentElement.setAttribute('data-theme', data.theme);
+        }
+
+        function updateDate() {
+            const t = translations[data.lang];
+            const localeMap = { 'en': 'en-US', 'es': 'es-ES', 'fr': 'fr-FR', 'zh': 'zh-CN' };
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('current-date').innerText = new Date().toLocaleDateString(localeMap[data.lang] || 'en-US', options);
+        }
+
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            if(btn) btn.classList.add('active');
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            
+            // Update Page Title based on translation
+            const t = translations[data.lang];
+            const titles = { 'dashboard': t.dashboard, 'planner': t.newTask, 'resources': t.library, 'focus': t.focus, 'settings': t.appSettings, 'about': t.about };
+            document.getElementById('page-title').innerText = titles[tabId];
+
+            if(tabId === 'planner') renderTasks();
+            if(tabId === 'dashboard') updateStats();
+            document.querySelector('.main-content').scrollTop = 0;
+        }
+
+        // --- PLANNER ---
+        function addTask() {
+            const titleIn = document.getElementById('task-title');
+            const catIn = document.getElementById('task-category');
+            const linkIn = document.getElementById('task-link');
+            const t = translations[data.lang];
+
+            if(!titleIn.value.trim()) { showToast(t.fillFields); return; }
+
+            data.tasks.unshift({
+                id: Date.now(),
+                title: titleIn.value,
+                category: catIn.value,
+                link: linkIn.value,
+                completed: false,
+                date: new Date().toLocaleDateString()
+            });
+            saveData();
+            renderTasks();
+            titleIn.value = ''; linkIn.value = '';
+            showToast(t.taskAdded);
+        }
+
+        function toggleTask(id) {
+            const task = data.tasks.find(t => t.id === id);
+            if(task) { task.completed = !task.completed; saveData(); renderTasks(); }
+        }
+
+        function deleteTask(id) {
+            const t = translations[data.lang];
+            if(confirm(t.confirmDelete)) {
+                data.tasks = data.tasks.filter(t => t.id !== id);
+                saveData();
+                renderTasks();
+                showToast(t.taskRemoved);
+            }
+        }
+
+        function renderTasks() {
+            const list = document.getElementById('task-list-container');
+            const t = translations[data.lang];
+            list.innerHTML = '';
+            const today = new Date().toLocaleDateString();
+            const todaysTasks = data.tasks.filter(task => task.date === today);
+
+            if(todaysTasks.length === 0) {
+                list.innerHTML = `<div style="text-align:center; padding:2rem; color:var(--text-muted); font-style:italic;">${t.noTasks}</div>`;
+                return;
+            }
+
+            todaysTasks.forEach(task => {
+                const li = document.createElement('li');
+                li.id = `task-${task.id}`;
+                li.className = `task-item ${task.completed ? 'completed' : ''}`;
+                
+                // Translate Badge
+                let badgeKey = 'badge' + task.category.charAt(0).toUpperCase() + task.category.slice(1);
+                let badgeText = t[badgeKey] || task.category;
+                
+                let linkHtml = task.link ? `<a href="${task.link}" target="_blank" class="task-link"><i class="ph ph-link"></i></a>` : '';
+                
+                li.innerHTML = `
+                    <div class="task-left">
+                        <input type="checkbox" class="custom-checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTask(${task.id})">
+                        <div class="task-info">
+                            <h4>${task.title} ${linkHtml}</h4>
+                            <span class="task-badge badge-${task.category}">${badgeText}</span>
+                        </div>
+                    </div>
+                    <button class="btn-delete" onclick="deleteTask(${task.id})"><i class="ph ph-trash"></i></button>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        function updateStats() {
+            const today = new Date().toLocaleDateString();
+            const tasks = data.tasks.filter(t => t.date === today);
+            const total = tasks.length;
+            const done = tasks.filter(t => t.completed).length;
+            document.getElementById('stat-completed').innerText = done;
+            document.getElementById('stat-pending').innerText = total - done;
+            const pct = total === 0 ? 0 : Math.round((done/total)*100);
+            document.getElementById('stat-productivity').innerText = `${pct}%`;
+        }
+
+        // --- RESOURCES ---
+        function renderResources(filter) {
+            const grid = document.getElementById('resource-grid');
+            const t = translations[data.lang];
+            grid.innerHTML = '';
+            const filtered = filter === 'all' ? data.resources : data.resources.filter(r => r.type === filter);
+            
+            filtered.forEach(res => {
+                const headerClass = res.type === 'reading' ? 'reading' : '';
+                // Translate Type Label
+                let typeLabel = res.type === 'courses' ? t.courses : t.reading;
+                
+                const a = document.createElement('a');
+                a.className = 'resource-card'; a.href = res.url; a.target = '_blank';
+                a.innerHTML = `<div class="res-header ${headerClass}"><span style="font-size:0.7rem; text-transform:uppercase; letter-spacing:1px; opacity:0.9;">${typeLabel}</span></div><div class="res-body"><div class="res-title">${res.title}</div><div class="res-desc">${res.desc}</div></div>`;
+                grid.appendChild(a);
+            });
+        }
+
+        function filterRes(type, btn) {
+            document.querySelectorAll('#resources .mode-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderResources(type);
+        }
+
+        // --- TIMER ---
+        let timerInterval; let timeLeft = 25 * 60; let totalTime = 25 * 60; let isRunning = false;
+        const circle = document.getElementById('progress-ring');
+        const circumference = 2 * Math.PI * 120;
+
+        function setProgress(percent) {
+            const offset = circumference - (percent / 100) * circumference;
+            circle.style.strokeDashoffset = offset;
+        }
+
+        function updateTimerDisplay() {
+            const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+            const s = (timeLeft % 60).toString().padStart(2, '0');
+            document.getElementById('timer-display').innerText = `${m}:${s}`;
+            setProgress((timeLeft / totalTime) * 100);
+        }
+
+        function toggleTimer() {
+            const btnText = document.getElementById('timer-btn-text');
+            const t = translations[data.lang];
+            if(isRunning) {
+                clearInterval(timerInterval);
+                isRunning = false;
+                btnText.innerText = t.startSession;
+            } else {
+                isRunning = true;
+                btnText.innerText = t.pause;
+                timerInterval = setInterval(() => {
+                    if(timeLeft > 0) { timeLeft--; updateTimerDisplay(); }
+                    else {
+                        clearInterval(timerInterval); isRunning = false;
+                        btnText.innerText = t.startSession;
+                        showToast(t.sessionComplete);
+                        new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg').play();
+                    }
+                }, 1000);
+            }
+        }
+
+        function resetTimer() {
+            const t = translations[data.lang];
+            clearInterval(timerInterval); isRunning = false; timeLeft = totalTime;
+            document.getElementById('timer-btn-text').innerText = t.startSession;
+            updateTimerDisplay();
+        }
+
+        function setTimerMode(mins, btn) {
+            document.querySelectorAll('.timer-modes .mode-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active'); totalTime = mins * 60; timeLeft = totalTime; resetTimer();
+        }
+
+        // --- TOAST ---
+        function showToast(msg) {
+            const t = document.getElementById('toast'); t.innerText = msg; t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 3000);
+        }
+
+        init();
+    </script>
+</body>
+</html>
